@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: roboshop
+  labels:
+    app: redis
+    tier: db
+    project: roboshop
+spec:
+  selector:
+    matchLabels:
+      app: redis
+      tier: db
+      project: roboshop
+  serviceName: "redis"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: db
+        project: roboshop
+    spec:
+      containers:
+      - name: redis
+        image: redis
+        volumeMounts:
+        - name: redis
+          mountPath: /data
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+  # this is PVC directly.
+  volumeClaimTemplates:
+  - metadata:
+      name: redis
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "ebs-sc"
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: roboshop
+spec:
+  clusterIP: None #headless
+  selector:
+    app: redis
+    tier: db
+    project: roboshop
+  ports:
+  - name: redis-port
+    protocol: TCP
+    port: 6379 # this port belongs to service
+    targetPort: 6379 # this port belongs to container
